@@ -2,18 +2,18 @@ const { sequelize } = require("../config/db");
 const { DataTypes } = require('sequelize');
 
 
-const BankDetail = sequelize.define('BankDetail', {
+const BusinessInfo = sequelize.define('BusinessInfo', {
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    bank_name: DataTypes.STRING,
-    bank_account_number: DataTypes.INTEGER,
-    bvn: DataTypes.INTEGER,
+    business_name: DataTypes.STRING,
+    business_description: DataTypes.STRING,
+    director_detail: DataTypes.STRING,
 },
   {
   timestamps: true,
 });
 
-module.exports = BankDetail;
+module.exports = BusinessInfo;

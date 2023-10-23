@@ -3,56 +3,29 @@ const { DataTypes } = require('sequelize');
 const BankDetail = require('./BankDetail');
 const AgrikoUser = require('./ArigkoUser');
 const Address = require('./Address');
+const BusinessInfo = require('./BusinessInfo');
 
-const Seller = sequelize.define('Seller', {
+class Seller extends AgrikoUser{
+  
+}
+
+Seller.init({
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
-  },
-  firstname: DataTypes.STRING,
-  lastname: DataTypes.STRING,
-  password: {
-      type: DataTypes.STRING,
-      validate: {
-          len: {
-              args: [8, 255],
-              msg: "Field must have a minimum length of 8 characters."
-          }
-      }
-  },
-  email: {
-      type: DataTypes.STRING,
-      unique: {
-        args:true,
-      msg: 'Email already exist'
-    },
-      allowNull: false,
-      validate: {
-        isEmail: {
-          args: true,
-          msg: 'Email is not valid'
-        }
-      }
-  },
-  isVerified: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  role: {
-    type: DataTypes.STRING,
-    defaultValue: 'seller'
-  },
-  gender: DataTypes.STRING,
-  date_of_birth: DataTypes.STRING,
-  phone_number: DataTypes.STRING,
-  business_name: DataTypes.STRING,
-  business_description: DataTypes.TEXT,
-  director_detail: DataTypes.STRING,
+  }
 },
   {
     timestamps: true,
+    sequelize,
+    modelName: 'Seller'
   });
+Seller.hasOne(BusinessInfo, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  });
+BusinessInfo.belongsTo(Seller);
 Seller.hasMany(BankDetail, {
   onDelete: 'CASCADE',
   onUpdate: 'CASCADE'

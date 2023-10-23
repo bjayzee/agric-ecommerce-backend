@@ -1,9 +1,9 @@
 const { sequelize } = require('../config/db');
-const { DataTypes } = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 
 
-exports.AgrikoUser = sequelize.define('AgrikoUser', {
-    name: DataTypes.STRING,
+class AgrikoUser extends Model{}
+AgrikoUser.init({
     firstname: DataTypes.STRING,
     lastname: DataTypes.STRING,
     password: {
@@ -19,16 +19,26 @@ exports.AgrikoUser = sequelize.define('AgrikoUser', {
         type: DataTypes.STRING,
         unique: true,
         allowNull: false,
-        validate: {
-          isEmail: {
-            args: true,
-            msg: 'Email is not valid'
-          }
-        }
+    },
+    phoneVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: 'seller'
     },
     gender: DataTypes.STRING,
-    date_of_birth: DataTypes.STRING,
+    date_of_birth: DataTypes.DATE,
     phone_number: DataTypes.STRING,
 },{
-  timestamps: false
-})
+  timestamps: false,
+  sequelize,
+  modelName: 'AgrikoUser'
+});
+
+module.exports = AgrikoUser;
