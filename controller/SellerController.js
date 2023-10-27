@@ -4,8 +4,9 @@ const jwt = require('jsonwebtoken');
 const twilioClient = require('../config/twilioConfig')
 const bcrypt = require('bcrypt');
 const { where } = require('sequelize');
-const { registerSeller, login, 
+const { registerSellerValidationSchema, loginValidationSchema, 
   verifyEmail, verifyPhoneNumber} = require('../validations/index');
+const { generateToken } = require('../config/token')
 
 
 
@@ -14,10 +15,9 @@ const { registerSeller, login,
 exports.createSeller = async(req, res) =>{
   const salt = await bcrypt.genSalt();
     try{
-
-      const { error } = await registerSeller.validateAsync(req.body);
+      const { error } = await registerSellerValidationSchema.validateAsync(req.body);
       if(error){
-        return res.status(httpStatus.BAD_REQUEST).json({success: false, message: error.details[0].message})
+        return res.status(httpStatus.BAD_REQUEST).json({success: false, message: error?.details[0].message})
       }
         const seller  = await Seller.create({
             firstname: req.body.firstname,
@@ -28,8 +28,7 @@ exports.createSeller = async(req, res) =>{
         });
         res.status(200).json({success: true, data: {...seller}})
     }catch(err){
-        res.status(400).json({success: false, message: err.message})
-
+        res.status(400).json({success: false, message: err?.message})
     }
 }
 
@@ -47,6 +46,9 @@ const findSellerById = async(id) =>{
 exports.sendPhoneOtp = async (req, res) =>{
   try {
     const seller = findSellerById(req.body.id);
+    if(seller.phone_number != req.body.phone_number){
+      res.status(httpStatus.BAD_REQUEST).json({success: false, message: "This phone number is not register by user"})
+    }
   
     await twilioClient.verify.v2.services(process.env.TWILIO_ServiceId)
                 .verifications
@@ -57,7 +59,27 @@ exports.sendPhoneOtp = async (req, res) =>{
   }  
 }
 
-exports.verifySeller = async(req, res) =>{
+//send OTP to email
+
+exports.sendEmailOtp = async (req, res, next) => {
+  try {
+    const seller = findSellerById(req.body.id);
+    if (seller.email != req.body.email) {
+      res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "This email is not register by user" })
+    }
+
+    await twilioClient.verify.v2.services(process.env.TWILIO_ServiceId)
+      .verifications
+      .create({ to: seller.email, channel: 'email' })
+    res.status(httpStatus[200]).json({ success: true, data: `Otp sent to ${seller.email}` })
+  } catch (error) {
+    res.status(error?.status).json({ success: false, data: error?.message })
+  }
+}
+
+//verify OTP
+
+exports.verifySellerPhoneNumber = async(req, res) =>{
   const { phone_number, otp, id } = req.body;
 
   try {
@@ -83,22 +105,52 @@ exports.verifySeller = async(req, res) =>{
   }
 }
 
+//verify OTP to Email
+exports.verifySellerEmail = async (req, res) => {
+
+  const { email, otp, id } = req.body;
+
+  try {
+    const seller = findSellerById(id)
+    if (!seller.email === email) {
+      res.status(400).json({ success: false, data: `This ${email} is not registered with this user` })
+    }
+    const verifiedResponse = await twilioClient.verify.v2.
+      services(process.env.TWILIO_ServiceId)
+      .verificationChecks.create({
+        to: email,
+        code: otp,
+      })
+    if (verifiedResponse.status === "approved") {
+      await Seller.update({ emailVerified: true }, { where: { id: seller.id } });
+      return res.status(200).json({ success: true, data: "Email verified successfully" });
+    } else {
+      return res.status(400).json({ success: false, data: "Email verification failed" });
+    }
+
+  } catch (error) {
+    res.status(error?.status || 400).send(error?.message || 'Something went wrong');
+  }
+}
+
+//login
+
 exports.login = async (req,res) => {
   try {
+      const { error } = await loginValidationSchema.validateAsync(req.body);
+      if (error) {
+        return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: error?.details[0].message })
+      }
       const seller = await Seller.findOne({ where: {email: req.body.email}})
       const secret = process.env.SECRET;
       if(!seller) {
           return res.status(404).send('user not found');
       }
       if(seller && bcrypt.compareSync(req.body.password, seller.password)) {
-          const token = jwt.sign(
-              {
-                  sellerId: seller.id,
-                  role: seller.role
-              },
-              secret,
-              {expiresIn : '1d'}
-          )
+          const token = generateToken(seller.id, seller.role);
+          if(!token){
+            res.status(400).json({success: false, message: 'Token can not generated'})
+          }
         
           res.status(200).json({success: false, user: seller.email , token: token}) 
       } else {

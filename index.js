@@ -2,6 +2,8 @@ const { connectDB } = require('./config/db')
 const express = require('express')
 const cors = require("cors");
 const routes = require('./routes/index')
+const passport = require('passport')
+const jwtStrategy = require('./middleware/passport')
 
 const app = express();
 
@@ -22,9 +24,13 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 
+//middleware
+app.use(passport.initialize())
+passport.use('jwt', jwtStrategy);
+
 
 //route setup
-app.use('/', routes)
+app.use('/v1', routes)
 
 
 

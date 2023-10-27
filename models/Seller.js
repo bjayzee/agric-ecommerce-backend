@@ -14,7 +14,11 @@ Seller.init({
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
-  }
+  },
+  role: {
+    type: DataTypes.STRING,
+    defaultValue: 'seller'
+  },
 },
   {
     timestamps: true,

@@ -8,12 +8,7 @@ AgrikoUser.init({
     lastname: DataTypes.STRING,
     password: {
         type: DataTypes.STRING,
-        validate: {
-            len: {
-                args: [8, 255],
-                msg: "Field must have a minimum length of 8 characters."
-            }
-        }
+        allowNull: false,
     },
     email: {
         type: DataTypes.STRING,
