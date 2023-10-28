@@ -7,7 +7,7 @@ const generateToken = (id, role) => {
         role: role
     },
     process.env.SECRET,
-    { expiresIn: '1d' }
+        { expiresIn: process.env.JWT_EXPIRATION_TIME }
 )}
 
 const verifyToken = (token) => {

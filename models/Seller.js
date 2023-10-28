@@ -1,12 +1,14 @@
 const { sequelize } = require('../config/db');
 const { DataTypes } = require('sequelize');
 const BankDetail = require('./BankDetail');
-const AgrikoUser = require('./ArigkoUser');
+const AgrikoUser = require('./AgrikoUser');
 const Address = require('./Address');
 const BusinessInfo = require('./BusinessInfo');
 
 class Seller extends AgrikoUser{
-  
+  constructor() {
+    super();
+  }
 }
 
 Seller.init({

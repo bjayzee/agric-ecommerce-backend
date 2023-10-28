@@ -1,12 +1,13 @@
 const Seller = require('../models/Seller')
 const httpStatus = require('http-status')
-const jwt = require('jsonwebtoken');
 const twilioClient = require('../config/twilioConfig')
 const bcrypt = require('bcrypt');
 const { where } = require('sequelize');
 const { registerSellerValidationSchema, loginValidationSchema, 
   verifyEmail, verifyPhoneNumber} = require('../validations/index');
 const { generateToken } = require('../config/token')
+const ApiError = require('../config/ApiError')
+
 
 
 
@@ -17,7 +18,7 @@ exports.createSeller = async(req, res) =>{
     try{
       const { error } = await registerSellerValidationSchema.validateAsync(req.body);
       if(error){
-        return res.status(httpStatus.BAD_REQUEST).json({success: false, message: error?.details[0].message})
+        throw new ApiError(httpStatus.BAD_REQUEST, error.message);
       }
         const seller  = await Seller.create({
             firstname: req.body.firstname,
@@ -26,18 +27,19 @@ exports.createSeller = async(req, res) =>{
             password: bcrypt.hashSync(req.body.password, salt),
             phone_number: req.body.phone_number
         });
-        res.status(200).json({success: true, data: {...seller}})
+        const {password, ...response} = seller;
+        res.status(httpStatus.CREATED).json({success: true, data: {...response}})
     }catch(err){
-        res.status(400).json({success: false, message: err?.message})
+        res.status(err?.statusCode).json({success: false, message: err?.message})
     }
 }
 
 // Find Seller by id
 
 const findSellerById = async(id) =>{
-  const seller = await Seller.findOne({ id })
+  const seller = await Seller.findByPk({ id })
   if(!seller){
-    return new Error('User does not exist') 
+    throw new ApiError(httpStatus.NOT_FOUND, 'Seller not found');
   }
   return seller;
 }
@@ -45,48 +47,47 @@ const findSellerById = async(id) =>{
 //send OTP to phone number
 exports.sendPhoneOtp = async (req, res) =>{
   try {
-    const seller = findSellerById(req.body.id);
-    if(seller.phone_number != req.body.phone_number){
-      res.status(httpStatus.BAD_REQUEST).json({success: false, message: "This phone number is not register by user"})
+    if (!req.isAuthenticated()) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'user not aunthenticated');
     }
+    const { phone_number, id } = req.user;
   
     await twilioClient.verify.v2.services(process.env.TWILIO_ServiceId)
                 .verifications
-                .create({to: seller.phone_number, channel: 'sms'})
-    res.status(200).json({success: true, data: `Otp sent to ${seller.phone_number}`})
+                .create({to: phone_number, channel: 'sms'})
+    res.status(httpStatus.OK).json({success: true, message: `Otp sent to ${phone_number}`})
   } catch (error) {
-    res.status(error?.status).json({success: false, data: error?.message})
+    res.status(error?.statusCode).json({success: false, message: error?.message})
   }  
 }
 
 //send OTP to email
 
-exports.sendEmailOtp = async (req, res, next) => {
+exports.sendEmailOtp = async (req, res) => {
   try {
-    const seller = findSellerById(req.body.id);
-    if (seller.email != req.body.email) {
-      res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "This email is not register by user" })
+    if (!req.isAuthenticated()) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'user not aunthenticated');
     }
+    const { email, id } = req.user;
 
     await twilioClient.verify.v2.services(process.env.TWILIO_ServiceId)
       .verifications
-      .create({ to: seller.email, channel: 'email' })
-    res.status(httpStatus[200]).json({ success: true, data: `Otp sent to ${seller.email}` })
+      .create({ to: email, channel: 'email' })
+    res.status(httpStatus.OK).json({ success: true, message: `Otp sent to ${email}` })
   } catch (error) {
-    res.status(error?.status).json({ success: false, data: error?.message })
+    res.status(error?.statusCode).json({ success: false, message: error?.message })
   }
 }
 
 //verify OTP
 
 exports.verifySellerPhoneNumber = async(req, res) =>{
-  const { phone_number, otp, id } = req.body;
+  if(!req.isAuthenticated()){
+    throw new ApiError(httpStatus.FORBIDDEN, 'user not aunthenticated');
+  }
+  const { phone_number, id } = req.user;
 
   try {
-    const seller = findSellerById(id)
-    if(!seller.phone_number === phone_number){
-      res.status(400).json({success: false, data: `This phone number ${phone_number} is not registered with this user`})
-    }
     const verifiedResponse = await twilioClient.verify.v2.
       services(process.env.TWILIO_ServiceId)
       .verificationChecks.create({
@@ -94,26 +95,28 @@ exports.verifySellerPhoneNumber = async(req, res) =>{
         code: otp,
       })
         if (verifiedResponse.status === "approved") {
-          await Seller.update({ phoneVerified: true }, { where: { id: seller.id } });
-          return res.status(200).json({ success: true, data: "OTP verified successfully" });
+          await Seller.update({ phoneVerified: true }, { where: { id: id } });
+          return res.status(httpStatus.OK).json({ success: true, message: "OTP verified successfully" });
         } else {
-          return res.status(400).json({ success: false, data: "OTP verification failed" });
+          return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "OTP verification failed" });
         }
-      
   } catch (error) {
-      res.status(error?.status || 400).send(error?.message || 'Something went wrong');
+      res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
   }
 }
 
 //verify OTP to Email
 exports.verifySellerEmail = async (req, res) => {
 
-  const { email, otp, id } = req.body;
+  if (!req.isAuthenticated()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'user not aunthenticated');
+  }
+  const { phone_number, id } = req.user;
 
   try {
     const seller = findSellerById(id)
     if (!seller.email === email) {
-      res.status(400).json({ success: false, data: `This ${email} is not registered with this user` })
+      throw new ApiError(httpStatus.BAD_REQUEST, `${email} not registered by user`);
     }
     const verifiedResponse = await twilioClient.verify.v2.
       services(process.env.TWILIO_ServiceId)
@@ -123,13 +126,13 @@ exports.verifySellerEmail = async (req, res) => {
       })
     if (verifiedResponse.status === "approved") {
       await Seller.update({ emailVerified: true }, { where: { id: seller.id } });
-      return res.status(200).json({ success: true, data: "Email verified successfully" });
+      return res.status(httpStatus.OK).json({ success: true, message: "Email verified successfully" });
     } else {
-      return res.status(400).json({ success: false, data: "Email verification failed" });
+      return res.status(httpStatus.BAD_GATEWAY).json({ success: false, message: "Email verification failed" });
     }
 
   } catch (error) {
-    res.status(error?.status || 400).send(error?.message || 'Something went wrong');
+    res.status(error?.statusCode || httpStatus.BAD_GATEWAY).send(error?.message || 'Something went wrong');
   }
 }
 
@@ -139,24 +142,24 @@ exports.login = async (req,res) => {
   try {
       const { error } = await loginValidationSchema.validateAsync(req.body);
       if (error) {
-        return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: error?.details[0].message })
+        throw new ApiError(httpStatus.BAD_REQUEST, error.message)
       }
       const seller = await Seller.findOne({ where: {email: req.body.email}})
       const secret = process.env.SECRET;
       if(!seller) {
-          return res.status(404).send('user not found');
+        throw new ApiError(httpStatus.UNAUTHORIZED, `user with ${req.body.email} does not exist`)
       }
       if(seller && bcrypt.compareSync(req.body.password, seller.password)) {
           const token = generateToken(seller.id, seller.role);
           if(!token){
-            res.status(400).json({success: false, message: 'Token can not generated'})
+            throw new ApiError(httpStatus.BAD_GATEWAY, 'Token could not be generated')
           }
         
-          res.status(200).json({success: false, user: seller.email , token: token}) 
+          res.status(httpStatus.OK).json({success: false, user: seller.email , token: token}) 
       } else {
-        res.status(400).send('password is wrong!');
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'password is wrong!');
       }
   } catch (error) {
-    res.status(error?.status || 400).send(error?.message);
+    res.status(error?.statusCode).send(error?.message);
   }
 }
