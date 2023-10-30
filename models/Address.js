@@ -8,14 +8,17 @@ const Address = sequelize.define('Address', {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
+    address_type: {
+      type: DataTypes.ENUM,
+      values: ['general', 'business']
+    },
     street: DataTypes.STRING,
     lga: DataTypes.TEXT,
     state: DataTypes.STRING,
     country: DataTypes.STRING,
   }, 
     {
-    timestamps: true,
-    // tableName: 'Address'
+    timestamps: false,
   },
 );
 

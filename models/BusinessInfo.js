@@ -10,10 +10,10 @@ const BusinessInfo = sequelize.define('BusinessInfo', {
     },
     business_name: DataTypes.STRING,
     business_description: DataTypes.STRING,
-    director_detail: DataTypes.STRING,
+    incorporation_doc: DataTypes.STRING,
 },
   {
-  timestamps: true,
+  timestamps: false,
 });
 
 module.exports = BusinessInfo;

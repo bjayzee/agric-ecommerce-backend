@@ -23,10 +23,6 @@ AgrikoUser.init({
       type: DataTypes.BOOLEAN,
       defaultValue: false
     },
-    role: {
-      type: DataTypes.STRING,
-      defaultValue: 'seller'
-    },
     gender: DataTypes.STRING,
     date_of_birth: DataTypes.DATE,
     phone_number: DataTypes.STRING,

@@ -1,14 +1,13 @@
 const { sequelize } = require('../config/db');
-const { DataTypes } = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
 const BankDetail = require('./BankDetail');
 const AgrikoUser = require('./AgrikoUser');
 const Address = require('./Address');
 const BusinessInfo = require('./BusinessInfo');
+const DirectorDetail = require('./DirectorDetail');
 
-class Seller extends AgrikoUser{
-  constructor() {
-    super();
-  }
+class Seller extends Model{
+ 
 }
 
 Seller.init({
@@ -21,11 +20,17 @@ Seller.init({
     type: DataTypes.STRING,
     defaultValue: 'seller'
   },
+  isProfileUpdated: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  token: DataTypes.STRING
 },
   {
     timestamps: true,
     sequelize,
-    modelName: 'Seller'
+    modelName: 'Seller',
+    raw: false
   });
 Seller.hasOne(BusinessInfo, {
     onDelete: 'CASCADE',
@@ -38,11 +43,19 @@ Seller.hasMany(BankDetail, {
 });
 BankDetail.belongsTo(Seller);
 
+Seller.hasOne(DirectorDetail, {
+  onDelete: 'CASCADE',
+  onUpdate: 'CASCADE'
+});
+DirectorDetail.belongsTo(Seller);
+
 Seller.hasMany(Address,  {
   onDelete: 'CASCADE',
   onUpdate: 'CASCADE'
 });
 Address.belongsTo(Seller);
+
+Seller.belongsTo(AgrikoUser);
 
 
 module.exports = Seller;

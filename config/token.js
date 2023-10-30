@@ -1,4 +1,17 @@
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt');
+
+
+
+const encryptPassword = async(password) =>{
+    const salt = await bcrypt.genSalt();
+    return bcrypt.hashSync(password, salt);
+}
+
+
+const decryptPassword = async (reqPassword, password) => {
+    return bcrypt.compareSync(reqPassword, password);
+}
 
 const generateToken = (id, role) => {
     jwt.sign(
@@ -20,5 +33,7 @@ const verifyToken = (token) => {
 
 module.exports = {
     verifyToken,
-    generateToken
+    generateToken,
+    encryptPassword,
+    decryptPassword
 }
