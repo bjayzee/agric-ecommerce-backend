@@ -1,6 +1,4 @@
-const { sequelize } = require('../config/db');
-const { DataTypes, Model } = require('sequelize');
-
+const { sequelize, DataTypes, Model } = require('../config/db');
 
 class AgrikoUser extends Model{}
 AgrikoUser.init({

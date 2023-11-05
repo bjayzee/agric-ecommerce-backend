@@ -1,10 +1,9 @@
-const { sequelize } = require('../config/db');
-const { DataTypes, Model } = require('sequelize');
-const BankDetail = require('./BankDetail');
-const AgrikoUser = require('./AgrikoUser');
-const Address = require('./Address');
-const BusinessInfo = require('./BusinessInfo');
-const DirectorDetail = require('./DirectorDetail');
+const { sequelize, DataTypes, Model } = require('../../config/db');
+const BankDetail = require('../BankDetail');
+const AgrikoUser = require('../AgrikoUser');
+const Address = require('../Address');
+const BusinessInfo = require('../BusinessInfo');
+const DirectorDetail = require('../DirectorDetail');
 
 class Seller extends Model{
  

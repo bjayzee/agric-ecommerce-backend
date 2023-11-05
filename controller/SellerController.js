@@ -1,4 +1,4 @@
-const Seller = require('../models/Seller')
+const { Seller } = require('../models/index')
 const httpStatus = require('http-status')
 const twilioClient = require('../config/twilioConfig')
 const { where } = require('sequelize');
@@ -84,6 +84,7 @@ exports.sendEmailOtp = async (req, res) => {
 
 exports.verifySellerPhoneNumber = async(req, res) =>{
   const { phone_number, id } = req.user;
+  const otp = req.body.token;
 
   try {
     const verifiedResponse = await twilioClient.verify.v2.
@@ -106,6 +107,7 @@ exports.verifySellerPhoneNumber = async(req, res) =>{
 //verify OTP to Email
 exports.verifySellerEmail = async (req, res) => {
   const { email, id } = req.user;
+  const otp = req.body.token;
 
   try {
     const seller = findSellerById(id)
@@ -122,11 +124,11 @@ exports.verifySellerEmail = async (req, res) => {
       await Seller.update({ emailVerified: true }, { where: { id: seller.id } });
       return res.status(httpStatus.OK).json({ success: true, message: "Email verified successfully" });
     } else {
-      return res.status(httpStatus.BAD_GATEWAY).json({ success: false, message: "Email verification failed" });
+      return res.status(httpStatus.BAD_REQUEST).json({ success: false, message: "Email verification failed" });
     }
 
   } catch (error) {
-    res.status(error?.statusCode || httpStatus.BAD_GATEWAY).send(error?.message || 'Something went wrong');
+    res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
   }
 }
 
@@ -256,7 +258,8 @@ exports.forgotPasswordByPhoneOTP = async (req, res) => {
 
 //forgot password with phone OTP verification
 exports.verifyForgotPasswordByPhoneOTP = async (req, res) => {
-    const {otp, password, phone_number} = req.body;
+    const {password, phone_number} = req.body;
+    const otp = req.params.token;
     try {
       const verifiedResponse = await twilioClient.verify.v2.
         services(process.env.TWILIO_ServiceId)

@@ -1,4 +1,4 @@
-const Seller = require('../models/Seller')
+const { Buyer } = require('../models/index')
 const httpStatus = require('http-status')
 const twilioClient = require('../config/twilioConfig')
 const { where } = require('sequelize');
@@ -13,8 +13,6 @@ const AgrikoUser = require('../models/AgrikoUser');
 const { sendResetPasswordEmail } = require('../config/mailConfig');
 const Token = require('../models/Token');
 const crypto = require('crypto');
-const Buyer = require('../models/buyer/Buyer');
-
 
 
 
@@ -83,8 +81,9 @@ exports.sendEmailOtp = async (req, res) => {
 
 //verify OTP
 
-exports.verifySellerPhoneNumber = async (req, res) => {
+exports.verifyBuyerPhoneNumber = async (req, res) => {
     const { phone_number, id } = req.user;
+    const otp = req.body.token;
 
     try {
         const verifiedResponse = await twilioClient.verify.v2.
@@ -107,6 +106,7 @@ exports.verifySellerPhoneNumber = async (req, res) => {
 //verify OTP to Email
 exports.verifyBuyerEmail = async (req, res) => {
     const { email, id } = req.user;
+    const otp = req.body.token;
 
     try {
         const buyer = await Buyer.findByPk(id)
@@ -202,7 +202,7 @@ exports.forgotPasswordByEmail = async (req, res) => {
 
     //verify reset password
 
-    exports.verifyForgotPassword = async (req, res) => {
+exports.verifyForgotPassword = async (req, res) => {
         try {
             const token = req.params.token;
             const { error } = await token.validateAsync(token);
@@ -222,13 +222,14 @@ exports.forgotPasswordByEmail = async (req, res) => {
                 throw new ApiError(httpStatus.NOT_ACCEPTABLE, 'Token has expired')
             }
 
-            const seller = await Seller.update({ password: encryptPassword(newPassword) }, {
+            const password = encryptPassword(newPassword)
+            const buyer = await Buyer.update({ password: password }, {
                 where: {
                     id: req.body.id
                 }
             });
 
-            res.status(httpStatus.OK).json({ success: true, message: 'Password update successfully', data: { ...seller } })
+            res.status(httpStatus.OK).json({ success: true, message: 'Password update successfully', data: { ...buyer } })
         } catch (error) {
             res.status(error?.statusCode || httpStatus.INTERNAL_SERVER_ERROR).send(error?.message || 'Something went wrong');
         }
@@ -238,11 +239,11 @@ exports.forgotPasswordByEmail = async (req, res) => {
     exports.forgotPasswordByPhoneOTP = async (req, res) => {
         try {
             const phone_number = req.body.phone_number;
-            const seller = await Seller.findOne({ phone_number })
-            if (!seller) {
+            const buyer = await Buyer.findOne({ phone_number })
+            if (!buyer) {
                 throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number does not exist')
             }
-            if (seller.phoneVerified === false) {
+            if (buyer.phoneVerified === false) {
                 throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number not verified')
             }
             await twilioClient.verify.v2.services(process.env.TWILIO_ServiceId)
@@ -275,26 +276,26 @@ exports.verifyForgotPasswordByPhoneOTP = async (req, res) => {
 
     //edit profile
 
-    exports.editBuyerProfile = async (req, res) => {
-        try {
-            const buyer = req.user;
-            if (req.body.buyer_info) {
-                const { error } = registerSellerValidationSchema.validateAsync(req.body.business_info);
-                if (error) {
-                    throw new ApiError(httpStatus.BAD_REQUEST, error.message)
-                }
-                await buyer.update(req.body.buyer_info)
+exports.editBuyerProfile = async (req, res) => {
+    try {
+        const buyer = req.user;
+        if (req.body.buyer_info) {
+            const { error } = registerSellerValidationSchema.validateAsync(req.body.business_info);
+            if (error) {
+                throw new ApiError(httpStatus.BAD_REQUEST, error.message)
             }
-            if (req.body.buyer_address) {
-                const { error } = await addressSchema.validateAsync(req.body.buyer_address);
-                if (error) {
-                    throw new ApiError(httpStatus.BAD_REQUEST, error.message)
-                }
-                await buyer.Address.update(req.body.buyer_address)
-            }
-            res.status(httpStatus.OK).json({ success: true, message: 'Profile updated successfully', data: { ...buyer } });
-        } catch (error) {
-            res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
+            await buyer.update(req.body.buyer_info)
         }
+        if (req.body.buyer_address) {
+            const { error } = await addressSchema.validateAsync(req.body.buyer_address);
+            if (error) {
+                throw new ApiError(httpStatus.BAD_REQUEST, error.message)
+            }
+            await buyer.Address.update(req.body.buyer_address)
+        }
+        res.status(httpStatus.OK).json({ success: true, message: 'Profile updated successfully', data: { ...buyer } });
+    } catch (error) {
+        res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
     }
+}
 }

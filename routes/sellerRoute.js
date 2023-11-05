@@ -13,10 +13,10 @@ router.post('/email/otp', auth, sellerController.sendEmailOtp)
 router.post('/phone/otp', auth, sellerController.sendPhoneOtp)
 router.post('/logout', auth, sellerController.signout)
 router.post('/forgot-password/email', sellerController.forgotPasswordByEmail)
-router.post('/forgot-password/phone', sellerController.forgotPasswordByPhoneOTP)
-router.post('/verify-password',  sellerController.verifyForgotPassword)
+// router.post('/forgot-password/phone', sellerController.forgotPasswordByPhoneOTP)
+// router.post('/verify-password',  sellerController.verifyForgotPassword)
 router.post('/verify-password-OTP', sellerController.verifyForgotPasswordByPhoneOTP)
-router.put('/edit-profile', auth, sellerController.editSellerProfile)
+// router.put('/edit-profile', auth, sellerController.editSellerProfile)
 router.put('/update-profile', auth, sellerController.updateSellerProfile)
 
 

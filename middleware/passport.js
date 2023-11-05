@@ -1,5 +1,5 @@
 const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
-const { Seller } = require('../models/index');
+const { Seller, Buyer } = require('../models/index');
 const { verifyToken } = require('../config/token')
 
 
@@ -17,6 +17,13 @@ const jwtVerify = async (payload, done) => {
                 }
                 if(token.role === 'seller'){
                         const user = await Seller.findByPk(token.id);
+                        if (!user) {
+                                return done(null, false);
+                        }
+                        done(null, user);
+                }
+                if (token.role === 'buyer') {
+                        const user = await Buyer.findByPk(token.id);
                         if (!user) {
                                 return done(null, false);
                         }

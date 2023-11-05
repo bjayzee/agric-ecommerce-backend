@@ -1,8 +1,9 @@
-const { sequelize } = require('../config/db');
-const { DataTypes } = require('sequelize');
+const { sequelize, DataTypes, Model } = require('../config/db');
 
+class Address extends Model {
 
-const Address = sequelize.define('Address', {
+}
+Address.init({
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
@@ -13,12 +14,15 @@ const Address = sequelize.define('Address', {
       values: ['general', 'business']
     },
     street: DataTypes.STRING,
-    lga: DataTypes.TEXT,
+    lga: DataTypes.STRING,
     state: DataTypes.STRING,
     country: DataTypes.STRING,
   }, 
     {
     timestamps: false,
+    sequelize,
+    modelName: 'Address',
+    raw: false
   },
 );
 

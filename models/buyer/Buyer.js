@@ -1,5 +1,6 @@
-const { sequelize } = require('../config/db');
-const { DataTypes, Model } = require('sequelize');
+const { sequelize, DataTypes, Model } = require('../../config/db');
+const Address = require('../Address');
+const AgrikoUser = require('../AgrikoUser');
 
 
 class Buyer extends Model {
@@ -27,14 +28,7 @@ Buyer.init({
         modelName: 'Buyer',
         raw: false
     });
-
-Buyer.hasMany(Address, {
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-});
+Buyer.belongsTo(AgrikoUser)
 Address.belongsTo(Buyer);
-
-Buyer.belongsTo(AgrikoUser);
-
-
+Buyer.hasMany(Address)
 module.exports = Buyer;
