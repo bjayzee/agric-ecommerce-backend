@@ -21,6 +21,27 @@ Buyer.init({
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
+    email: {
+        type: DataTypes.STRING,
+        unique: {
+            msg: 'Email already in use'
+        },
+        allowNull: false,
+    },
+    password: {
+        type: DataTypes.STRING,
+    },
+    hasPassword: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    phone_number: {
+        type: DataTypes.STRING,
+        unique: {
+            msg: 'Phone number is attached to another user'
+        },
+    },
+    token: DataTypes.STRING
 },
     {
         timestamps: true,
@@ -28,7 +49,13 @@ Buyer.init({
         modelName: 'Buyer',
         raw: false
     });
-Buyer.belongsTo(AgrikoUser)
+Buyer.belongsTo(AgrikoUser, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+});
 Address.belongsTo(Buyer);
 Buyer.hasMany(Address)
+
+
+
 module.exports = Buyer;

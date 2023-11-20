@@ -13,7 +13,7 @@ const { Sequelize, Model, DataTypes } = require("sequelize");
     try {
       await sequelize.authenticate();
       console.log('Database connection established');
-      await sequelize.sync({force: true})
+      await sequelize.sync({force: false})
     } catch (e) {
       console.log('Database connection failed', e);
       process.exit(1);

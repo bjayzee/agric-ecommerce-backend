@@ -1,4 +1,4 @@
-const { sequelize, DataTypes, Model } = require('../config/db');
+const { sequelize, DataTypes } = require('../config/db');
 
 const BankDetail = sequelize.define('BankDetail', {
     id: {
@@ -6,9 +6,30 @@ const BankDetail = sequelize.define('BankDetail', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    bank_name: DataTypes.STRING,
-    bank_account_number: DataTypes.INTEGER,
-    bvn: DataTypes.INTEGER,
+    bank_name: {
+      type: DataTypes.STRING,
+      allowNull: {
+        type: false,
+        msg: 'Bank name cannot be empty',
+      }
+    
+    },
+  bank_account_number: {
+    type: DataTypes.STRING,
+    allowNull: {
+      type: false,
+      msg: 'Bank name cannot be empty',
+    }
+
+  },
+  bvn: {
+    type: DataTypes.STRING,
+    allowNull: {
+      type: false,
+      msg: 'BVN cannot be empty',
+    }
+
+  },
 },
   {
   timestamps: true,

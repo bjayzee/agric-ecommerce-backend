@@ -1,42 +1,48 @@
-const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
+const passport = require('passport');
 const { Seller, Buyer } = require('../models/index');
-const { verifyToken } = require('../config/token')
+const AgrikoUser = require('../models/AgrikoUser');
+
+const JwtStrategy = require('passport-jwt').Strategy,
+        ExtractJwt = require('passport-jwt').ExtractJwt;
 
 
 const jwtOptions = {
         secretOrKey: process.env.SECRET,
-        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
 };
 
 const jwtVerify = async (payload, done) => {
-        
         try {
-                const token = verifyToken(payload);
-                if(!token){
+                if (!payload) {
                         return done(null, false);
                 }
-                if(token.role === 'seller'){
-                        const user = await Seller.findByPk(token.id);
-                        if (!user) {
-                                return done(null, false);
-                        }
-                        done(null, user);
+
+                let user;
+
+                if (payload.role === 'seller') {
+                        user = await Seller.findByPk(payload.id);
+                } else if (payload.role === 'buyer') {
+                        user = await Buyer.findByPk(payload.id);
                 }
-                if (token.role === 'buyer') {
-                        const user = await Buyer.findByPk(token.id);
-                        if (!user) {
-                                return done(null, false);
-                        }
-                        done(null, user);
+
+                if (!user) {
+                        return done(null, false);
                 }
-                
+
+                done(null, user);
         } catch (error) {
-                done(error, false);
+                return done(error, false);
         }
 };
 
-const jwtStrategy = new JwtStrategy(jwtOptions, jwtVerify);
+passport.use(new JwtStrategy(jwtOptions, jwtVerify));
+
+const auth = passport.authenticate('jwt', { session: false });
+
+const googleAuth = passport.authenticate('google', { scope: ['profile', 'email'] })
 
 module.exports = {
-        jwtStrategy,
-};
+        passport,
+        auth,
+        googleAuth
+} 

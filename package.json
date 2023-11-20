@@ -4,7 +4,7 @@
   "description": "Agriko is an innovative digital solution that facilitates seamless interaction between agricultural producers (farmers) and individuals/businesses seeking to purchase agricultural produce (buyers). This innovative platform bridges the gap between farmers seeking to showcase their produce and buyers eager to acquire quality agricultural products.",
   "main": "index.js",
   "scripts": {
-    "test": "npm test",
+    "test": "jest",
     "start": "nodemon index.js"
   },
   "author": "Adams Bolaji",
@@ -20,11 +20,16 @@
     "jsonwebtoken": "^9.0.2",
     "nodemon": "^3.0.1",
     "passport": "^0.6.0",
+    "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pg": "^8.11.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.33.0",
     "twilio": "^4.18.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   }
 }

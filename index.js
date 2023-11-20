@@ -1,17 +1,15 @@
-const { connectDB } = require('./config/db')
+require('./config/db').connectDB()
 const express = require('express')
 const cors = require("cors");
-const routes = require('./routes/index')
-const passport = require('passport')
-const jwtStrategy = require('./middleware/passport')
+const routes = require('./routes/index');
+
 
 const app = express();
 
-connectDB()
 
 
 //cors configuration
-var corsOptions = {
+const corsOptions = {
     origin: process.env.client_url
   };
   
@@ -25,12 +23,16 @@ app.use(express.urlencoded({extended: true}));
 
 
 //middleware
-app.use(passport.initialize())
-passport.use('jwt', jwtStrategy);
+require('./middleware/passport').passport;
+
+
 
 
 //route setup
-app.use('/v1', routes)
+app.use('/v1', routes);
+app.use('/home', (req, res)=>{
+  res.send('Welcome home');
+})
 
 
 

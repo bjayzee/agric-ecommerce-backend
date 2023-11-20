@@ -4,15 +4,6 @@ class AgrikoUser extends Model{}
 AgrikoUser.init({
     firstname: DataTypes.STRING,
     lastname: DataTypes.STRING,
-    password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    email: {
-        type: DataTypes.STRING,
-        unique: true,
-        allowNull: false,
-    },
     phoneVerified: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
@@ -23,7 +14,15 @@ AgrikoUser.init({
     },
     gender: DataTypes.STRING,
     date_of_birth: DataTypes.DATE,
-    phone_number: DataTypes.STRING,
+    enable2FA: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    signUpType: {
+    type: DataTypes.ENUM,
+    values: ['normal', 'social'],
+    defaultValue: 'normal',
+  },
 },{
   timestamps: false,
   sequelize,

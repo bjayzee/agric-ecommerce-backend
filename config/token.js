@@ -14,20 +14,22 @@ const decryptPassword = async (reqPassword, password) => {
 }
 
 const generateToken = (id, role) => {
-    jwt.sign(
+    
+   return jwt.sign(
     {
-        user_id: id,
+        id: id,
         role: role
     },
     process.env.SECRET,
         { expiresIn: process.env.JWT_EXPIRATION_TIME }
+    
 )}
 
 const verifyToken = (token) => {
     try {
         return jwt.verify(token, process.env.SECRET);
     } catch (err) {
-        return err;
+        return { error: err };
     }
 }
 

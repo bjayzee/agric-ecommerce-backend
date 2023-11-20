@@ -25,16 +25,33 @@ exports.createBuyer = async (req, res) => {
         if (error) {
             throw new ApiError(httpStatus.BAD_REQUEST, error.message);
         }
-        const buyer = await Buyer.create({
+        const hashPassword = await encryptPassword(req.body.password)
+        const agrikoUser = await AgrikoUser.create({
             firstname: req.body.firstname,
             lastname: req.body.lastname,
-            email: req.body.email,
-            password: encryptPassword(req.body.password),
-            phone_number: req.body.phone_number,
+            password: hashPassword,
 
+        })
+        const buyer = await Buyer.create({
+            email: req.body.email,
+            phone_number: req.body.phone_number,
         });
-        const { password, ...response } = buyer;
-        res.status(httpStatus.CREATED).json({ success: true, data: { ...response } })
+        seller.setAgrikoUser(agrikoUser);
+        const agrikoUserData = await buyer.getAgrikoUser();
+
+        const responseObject = {
+            id: buyer.id,
+            firstname: agrikoUserData.firstname,
+            lastname: agrikoUserData.lastname,
+            email: buyer.email,
+            phone_number: buyer.phone_number
+        }
+
+        res.status(httpStatus.CREATED).json({
+            success: true,
+            message: 'Seller created successfully',
+            data: responseObject
+        });
     } catch (err) {
         res.status(err?.statusCode || httpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: err?.message })
     }
@@ -198,63 +215,64 @@ exports.forgotPasswordByEmail = async (req, res) => {
     } catch (error) {
         res.status(error?.statusCode || httpStatus.INTERNAL_SERVER_ERROR).send(error?.message || 'Something went wrong');
     }
-
+}
 
     //verify reset password
 
 exports.verifyForgotPassword = async (req, res) => {
-        try {
-            const token = req.params.token;
-            const { error } = await token.validateAsync(token);
-            if (error) {
-                throw new ApiError(httpStatus.BAD_REQUEST, error.message);
-            }
-            const newPassword = req.body.password;
-            const { err } = await passwordSchema.validateAsync(newPassword);
-            if (err) {
-                throw new ApiError(httpStatus.BAD_REQUEST, err.message);
-            }
-            const tokenObject = await Token.findOne({ token })
-            if (!tokenObject) {
-                throw new ApiError(httpStatus.NOT_ACCEPTABLE, 'Token does not exist')
-            }
-            if (Date.now > tokenObject.expiredAt) {
-                throw new ApiError(httpStatus.NOT_ACCEPTABLE, 'Token has expired')
-            }
-
-            const password = encryptPassword(newPassword)
-            const buyer = await Buyer.update({ password: password }, {
-                where: {
-                    id: req.body.id
-                }
-            });
-
-            res.status(httpStatus.OK).json({ success: true, message: 'Password update successfully', data: { ...buyer } })
-        } catch (error) {
-            res.status(error?.statusCode || httpStatus.INTERNAL_SERVER_ERROR).send(error?.message || 'Something went wrong');
+    try {
+        const token = req.params.token;
+        const { error } = await token.validateAsync(token);
+        if (error) {
+            throw new ApiError(httpStatus.BAD_REQUEST, error.message);
         }
-    }
-
-    //forgot password with phone OTP
-    exports.forgotPasswordByPhoneOTP = async (req, res) => {
-        try {
-            const phone_number = req.body.phone_number;
-            const buyer = await Buyer.findOne({ phone_number })
-            if (!buyer) {
-                throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number does not exist')
-            }
-            if (buyer.phoneVerified === false) {
-                throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number not verified')
-            }
-            await twilioClient.verify.v2.services(process.env.TWILIO_ServiceId)
-                .verifications
-                .create({ to: phone_number, channel: 'sms' })
-            res.status(httpStatus.OK).json({ success: true, message: `Otp sent to ${phone_number}` })
-        } catch (error) {
-            res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
+        const newPassword = req.body.password;
+        const { err } = await passwordSchema.validateAsync(newPassword);
+        if (err) {
+            throw new ApiError(httpStatus.BAD_REQUEST, err.message);
         }
+        const tokenObject = await Token.findOne({ token })
+        if (!tokenObject) {
+            throw new ApiError(httpStatus.NOT_ACCEPTABLE, 'Token does not exist')
+        }
+        if (Date.now > tokenObject.expiredAt) {
+            throw new ApiError(httpStatus.NOT_ACCEPTABLE, 'Token has expired')
+        }
+
+        const password = encryptPassword(newPassword)
+        const buyer = await Buyer.update({ password: password }, {
+            where: {
+                id: req.body.id
+            }
+        });
+
+        res.status(httpStatus.OK).json({ success: true, message: 'Password update successfully', data: { ...buyer } })
+    } catch (error) {
+        res.status(error?.statusCode || httpStatus.INTERNAL_SERVER_ERROR).send(error?.message || 'Something went wrong');
     }
 }
+
+
+    //forgot password with phone OTP
+exports.forgotPasswordByPhoneOTP = async (req, res) => {
+    try {
+        const phone_number = req.body.phone_number;
+        const buyer = await Buyer.findOne({ phone_number })
+        if (!buyer) {
+            throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number does not exist')
+        }
+        if (buyer.phoneVerified === false) {
+            throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number not verified')
+        }
+        await twilioClient.verify.v2.services(process.env.TWILIO_ServiceId)
+            .verifications
+            .create({ to: phone_number, channel: 'sms' })
+        res.status(httpStatus.OK).json({ success: true, message: `Otp sent to ${phone_number}` })
+    } catch (error) {
+        res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
+    }
+}
+
 
 //forgot password with phone OTP verification
 exports.verifyForgotPasswordByPhoneOTP = async (req, res) => {
@@ -273,14 +291,14 @@ exports.verifyForgotPasswordByPhoneOTP = async (req, res) => {
     } catch (error) {
         res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
     }
-
+}
     //edit profile
 
 exports.editBuyerProfile = async (req, res) => {
     try {
         const buyer = req.user;
         if (req.body.buyer_info) {
-            const { error } = registerSellerValidationSchema.validateAsync(req.body.business_info);
+            const { error } = registerSellerValidationSchema.validateAsync(req.body.buyer_info);
             if (error) {
                 throw new ApiError(httpStatus.BAD_REQUEST, error.message)
             }
@@ -298,4 +316,62 @@ exports.editBuyerProfile = async (req, res) => {
         res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
     }
 }
+
+//enable 2FA
+exports.enable2FA = async (req, res) => {
+    try {
+        const buyer = req.user;
+        if (req.params.phone_number) {
+            phone_number = req.params.phone_number;
+            if (phone_number != buyer.phone_number) {
+                throw new ApiError(httpStatus.BAD_REQUEST, `${phone_number} is not registered by user`);
+            }
+            if (buyer.getAgrikoUser.phoneVerified == false) {
+                throw new ApiError(httpStatus.BAD_REQUEST, `${phone_number} is not verified by user`);
+            }
+            sendOTP(phone_number, 'sms');
+        }
+
+
+        if (req.params.email) {
+            email = req.params.email;
+            if (email != buyer.email) {
+                throw new ApiError(httpStatus.BAD_REQUEST, `${email} is not registered by user`);
+            }
+            if (buyer.getAgrikoUser.emailVerified == false) {
+                throw new ApiError(httpStatus.BAD_REQUEST, `${email} is not verified by user`);
+            }
+            sendOTP(email, 'email');
+        }
+        res.status(httpStatus.OK).json({ success: true, message: '2FA verification sent successfully' });
+    } catch (error) {
+        res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
+    }
+}
+
+exports.confirmEnable2FA = async (req, res) => {
+
+    try {
+        if (req.body.phone_number) {
+            verifyOTP(req.body.phone_number, 'sms')
+        }
+        if (req.body.email) {
+            verifyOTP(req.body.email, 'email');
+        }
+        const buyer = req.user;
+        await buyer.getAgrikoUser.update({ enable2FA: true });
+        res.status(httpStatus.OK).json({ success: true, message: '2FA activated successfully' })
+    } catch (error) {
+        res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
+    }
+
+}
+exports.disable2FA = async (req, res) => {
+    try {
+        const buyer = req.user;
+        buyer.getAgrikoUser.update({ enable2FA: false });
+        res.status(httpStatus.OK).json({ success: true, message: '2FA deactivated successfully' })
+    } catch (error) {
+        res.status(error?.statusCode || httpStatus.BAD_REQUEST).send(error?.message || 'Something went wrong');
+    }
 }
